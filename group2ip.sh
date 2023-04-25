@@ -2,7 +2,7 @@
 
 NSXUSER='youruserhere'
 #NSXPASS='yourpasswordhere'
-NSXMAN='your nsx manager here'
+NSXMAN='yournsxmanagerhere'
 
 read -s -p "Password: " NSXPASS
 
@@ -23,6 +23,7 @@ sed -i 's/"//g' section.list
 
 SECTION="section.list"
 
+
 echo 'Do you want to update a specif section? Choose the line number or leave empty to full update.'
 echo ''
 
@@ -40,6 +41,7 @@ echo "$ANSWER"
 echo "Updating Section $ANSWER"
 
 
+
 sed -n $ANSWER,999p section.list > section2.list
 sed -n 1,1p section2.list > section.list
 
@@ -47,15 +49,18 @@ echo `cat section.list`
 
 rm  section2.list
 
-sleep 1
+sleep 5
 
 else
 
 echo "Updating Everything"
 echo `cat section.list`
 
+sleep 5
+
 fi
 
+GROUPSEQ=0
 
 for SECTIONVAR in `cat $SECTION`
 
@@ -64,7 +69,6 @@ do
 ID01=`echo $SECTIONVAR | cut -f2 -d","`
 DISPLAYNAME01=`echo $SECTIONVAR | cut -f4 -d","`
 PATH01=`echo $SECTIONVAR | cut -f6 -d","`
-
 
 curl -k --user $NSXUSER:$NSXPASS https://$NSXMAN/policy/api/v1$PATH01 >> rules-orig.txt
 
@@ -131,6 +135,8 @@ sed -n 18,50p  rule$ID01$ID02.txt >>  rulenew$ID01$ID02.txt
 
 curl -k --user $NSXUSER:$NSXPASS https://$NSXMAN/policy/api/v1$PATH02 -X PATCH --data @rulenew$ID01$ID02.txt -H "Content-Type: application/json"
 
+GROUPSEQ=$(( $GROUPSEQ + 1))
+
 sleep 1
 
 fi
@@ -160,6 +166,7 @@ sed -n 19,50p  rulenew2$ID01$ID02.txt >>  rulenew3$ID01$ID02.txt
 
 curl -k --user $NSXUSER:$NSXPASS https://$NSXMAN/policy/api/v1$PATH02 -X PATCH --data @rulenew3$ID01$ID02.txt -H "Content-Type: application/json"
 
+GROUPSEQ=$(( $GROUPSEQ + 1))
 
 sleep 1
 
@@ -170,3 +177,22 @@ fi
 done
 
 done
+
+#Clean up
+
+read -p "Do you want to delete the .txt files created for migration? (Y/N)" -n 1 -r CHOICE
+echo    #
+if [[ $CHOICE =~ ^[Yy]$ ]];
+
+then
+
+echo "Deleting .txt files"
+rm -rf *.txt
+
+
+else
+echo "Saving the .txt files"
+
+fi
+
+echo "Task completed! $GROUPSEQ Group(s) have been updated in NSX $NSXMAN."
